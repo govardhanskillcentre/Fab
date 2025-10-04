@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flow Of Electron</title>
-        <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
-        Code By Onkar Gavade
-    </footer>
+
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -39,8 +37,9 @@
 
     <div class="p-6 md:p-10">
         <h1 class="text-3xl md:text-4xl font-extrabold text-white text-center mb-6">
-            The Water-Pipe Analogy: V=IR
+            The Water-Pipe V=IR
         </h1>
+        
         <!-- UPDATED: Added h-64 (256px) for mobile, md:h-[450px] for desktop -->
         <div id="analogy-container" class="h-64 md:h-[450px]">
             <canvas id="analogyCanvas"></canvas>
@@ -83,7 +82,9 @@
     
     <!-- New Footer Section -->
 
-
+        <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
+        Code By Onkar Gavade
+    </footer>
     <script>
         const canvas = document.getElementById('analogyCanvas');
         const ctx = canvas.getContext('2d');
