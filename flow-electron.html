@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resistor Analogy Animation</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for the canvas container and pipe visualization */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937; /* Dark Gray background */
+        }
+        #analogy-container {
+            width: 100%;
+            max-width: 1000px;
+            /* Height is now controlled by Tailwind classes in HTML */
+            margin: 0 auto;
+            background-color: #f3f4f6; /* Light gray pipe background */
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #analogyCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="p-6 md:p-10">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-white text-center mb-6">
+            The Water-Pipe Analogy: V=IR
+        </h1>
+        <!-- UPDATED: Added h-64 (256px) for mobile, md:h-[450px] for desktop -->
+        <div id="analogy-container" class="h-64 md:h-[450px]">
+            <canvas id="analogyCanvas"></canvas>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="mt-8 bg-gray-800 p-6 rounded-xl shadow-2xl max-w-2xl mx-auto">
+            <h2 class="text-xl font-bold text-white mb-4">Controls (Adjust the system properties)</h2>
+            
+            <!-- This section uses flex-col on mobile and flex-row on desktop for good flow -->
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-8">
+                
+                <!-- Voltage Control (Pump Pressure) -->
+                <div class="w-full">
+                    <label for="voltageRange" class="text-yellow-400 font-semibold mb-1 block">
+                        Voltage (Pump Pressure): <span id="voltageValue" class="font-mono">50 V</span>
+                    </label>
+                    <input type="range" id="voltageRange" min="10" max="100" value="50" class="w-full h-2 bg-yellow-600 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- Resistance Control (Pipe Narrowness) -->
+                <div class="w-full">
+                    <label for="resistanceRange" class="text-blue-400 font-semibold mb-1 block">
+                        Resistance (Pipe Narrowness): <span id="resistanceValue" class="font-mono">50 R</span>
+                    </label>
+                    <input type="range" id="resistanceRange" min="10" max="100" value="50" class="w-full h-2 bg-blue-600 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Live Feedback -->
+            <div class="mt-6 text-center">
+                <p class="text-lg text-white">
+                    Live Current (Flow Rate): 
+                    <span id="currentValue" class="font-extrabold text-green-400 text-2xl font-mono">0.0</span> particles/frame
+                </p>
+            </div>
+            <!-- Removed previous credit line from here -->
+        </div>
+    </div>
+    
+    <!-- New Footer Section -->
+    <footer class="text-center text-gray-500 text-sm mt-8 pb-4">
+        Code By Onkar Gavade
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('analogyCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elements
+        const voltageRange = document.getElementById('voltageRange');
+        const resistanceRange = document.getElementById('resistanceRange');
+        const voltageValueEl = document.getElementById('voltageValue');
+        const resistanceValueEl = document.getElementById('resistanceValue');
+        const currentValueEl = document.getElementById('currentValue');
+
+        // Simulation Constants
+        const PIPE_HEIGHT = 80;
+        const RESISTOR_START_RATIO = 0.5; // Starts halfway
+        const RESISTOR_WIDTH_RATIO = 0.2; // 20% of pipe length
+
+        // Simulation State
+        let currentVoltage = parseInt(voltageRange.value); // V (Pump Pressure)
+        let currentResistance = parseInt(resistanceRange.value); // R (Pipe Narrowness)
+        let particles = [];
+        let frameCount = 0;
+
+        // Particle class (Water Droplets/Electrons)
+        class Particle {
+            constructor(y) {
+                this.x = 0;
+                this.y = y;
+                this.radius = 4;
+                this.color = '#3498db'; // Blue water
+            }
+
+            // Calculate effective speed based on location
+            calculateSpeed(V, R) {
+                // Base speed is proportional to Voltage (V)
+                let baseSpeed = V / 50; 
+                
+                // --- The R (Resistance) Effect ---
+                const resistorStart = canvas.width * RESISTOR_START_RATIO;
+                const resistorEnd = resistorStart + canvas.width * RESISTOR_WIDTH_RATIO;
+                
+                if (this.x > resistorStart && this.x < resistorEnd) {
+                    // Reduce speed in the resistor section. The higher the R, the slower the speed.
+                    // Max R (100) -> Max speed reduction (e.g., speed / 4)
+                    const reductionFactor = 1 + (R / 30); // Higher R means larger divisor
+                    return baseSpeed / reductionFactor;
+                }
+                
+                return baseSpeed;
+            }
+
+            update(V, R) {
+                this.x += this.calculateSpeed(V, R);
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        // --- Drawing Functions ---
+
+        function drawPump(pipeY) {
+            // Draw the pump (Voltage Source) on the left
+            const pumpHeight = PIPE_HEIGHT * 1.5;
+            const pumpWidth = 30;
+
+            // Pump Body (Red, symbolizing power)
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(10, pipeY - pumpHeight / 2, pumpWidth, pumpHeight);
+
+            // Pump Label
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Inter';
+            ctx.fillText('PUMP (V)', 12, pipeY - pumpHeight / 2 + 20);
+        }
+
+        function drawResistor(pipeY) {
+            const pipeInnerY = pipeY;
+            const resistorStart = canvas.width * RESISTOR_START_RATIO;
+            const resistorEnd = resistorStart + canvas.width * RESISTOR_WIDTH_RATIO;
+
+            // --- Dynamic Narrowing Logic ---
+            // Map resistance (10-100) to visual gap height
+            const MAX_R_VALUE = 100;
+            const MIN_R_VALUE = 10;
+            const MAX_GAP_HEIGHT = PIPE_HEIGHT * 0.9; // Widest gap at R=10
+            const MIN_GAP_HEIGHT = PIPE_HEIGHT * 0.15; // Narrowest gap at R=100
+
+            // Normalize currentResistance (0 to 1)
+            const normalizedR = (currentResistance - MIN_R_VALUE) / (MAX_R_VALUE - MIN_R_VALUE);
+            
+            // Inversely map to dynamic gap (High R -> Small Gap)
+            const dynamicGapHeight = MAX_GAP_HEIGHT - (normalizedR * (MAX_GAP_HEIGHT - MIN_GAP_HEIGHT));
+            
+            // Calculate the height of the top and bottom solid obstructions
+            const obstructionHeight = (PIPE_HEIGHT - dynamicGapHeight) / 2;
+            // --- End Dynamic Narrowing Logic ---
+
+
+            // Draw the Narrow Pipe (Resistor)
+            ctx.fillStyle = '#94a3b8'; // Slate gray for the obstruction
+            
+            // Top restriction: Starts at top pipe wall and extends down by obstructionHeight
+            ctx.fillRect(resistorStart, pipeInnerY - PIPE_HEIGHT / 2, resistorEnd - resistorStart, obstructionHeight);
+            
+            // Bottom restriction: Starts from bottom pipe wall and extends up by obstructionHeight
+            // pipeInnerY + PIPE_HEIGHT / 2 is the bottom wall position
+            const bottomObstructionY = pipeInnerY + PIPE_HEIGHT / 2 - obstructionHeight;
+            ctx.fillRect(resistorStart, bottomObstructionY, resistorEnd - resistorStart, obstructionHeight);
+
+            // Resistor Label
+            ctx.fillStyle = '#1f2937';
+            ctx.font = '16px Inter';
+            ctx.fillText('RESISTOR (R)', resistorStart + 5, pipeInnerY - PIPE_HEIGHT / 2 - 10);
+        }
+
+        function drawPipe() {
+            // Recalculate dimensions on redraw
+            const pipeY = canvas.height / 2;
+
+            // Clear the canvas
+            ctx.fillStyle = '#f3f4f6';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the Main Pipe
+            ctx.strokeStyle = '#374151'; // Darker gray border
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, pipeY - PIPE_HEIGHT / 2);
+            ctx.lineTo(canvas.width, pipeY - PIPE_HEIGHT / 2);
+            ctx.moveTo(0, pipeY + PIPE_HEIGHT / 2);
+            ctx.lineTo(canvas.width, pipeY + PIPE_HEIGHT / 2);
+            ctx.stroke();
+
+            drawPump(pipeY);
+            drawResistor(pipeY);
+            
+            return pipeY;
+        }
+
+        // --- Animation Loop ---
+
+        function animate() {
+            // 1. Get current values from sliders
+            currentVoltage = parseInt(voltageRange.value);
+            currentResistance = parseInt(resistanceRange.value);
+            
+            voltageValueEl.textContent = `${currentVoltage} V`;
+            resistanceValueEl.textContent = `${currentResistance} R`;
+
+            const pipeY = drawPipe();
+
+            // 2. Particle Generation (Current is proportional to Voltage and inversely related to Resistance)
+            
+            // Simplified Ohm's Law relationship for particle generation rate (Flow Rate)
+            // Higher V and Lower R should increase flow. 
+            // V=I*R -> I = V/R_total. R_total is R from slider + static R (e.g., 50)
+            const R_total = currentResistance + 50; 
+            const flowRate = (currentVoltage / R_total) * 10; // Multiply by 10 to make it noticeable
+
+            if (frameCount % Math.max(1, Math.round(100 / flowRate)) === 0) {
+                // Generate new particles near the start of the main pipe (after the pump)
+                // We need to ensure new particles are generated within the *full* PIPE_HEIGHT, not the reduced resistor gap.
+                const yOffset = Math.random() * (PIPE_HEIGHT - 10) - (PIPE_HEIGHT / 2) + pipeY;
+                particles.push(new Particle(yOffset));
+            }
+
+            // 3. Update and Draw Particles
+            const activeParticles = [];
+            let totalSpeed = 0;
+
+            particles.forEach(p => {
+                p.update(currentVoltage, currentResistance);
+                p.draw();
+                
+                // Keep particles that are still in the pipeline
+                if (p.x < canvas.width) {
+                    activeParticles.push(p);
+                    // Add particle speed to calculate average current visually
+                    totalSpeed += p.calculateSpeed(currentVoltage, currentResistance);
+                }
+            });
+
+            particles = activeParticles;
+
+            // 4. Display Current Feedback
+            const avgSpeed = activeParticles.length > 0 ? totalSpeed / activeParticles.length : 0;
+            const visualCurrent = (avgSpeed * activeParticles.length).toFixed(2);
+            currentValueEl.textContent = visualCurrent;
+
+            // 5. Loop
+            frameCount++;
+            requestAnimationFrame(animate);
+        }
+
+        // --- Event Listeners and Initial Setup ---
+
+        function setupCanvas() {
+            // Set canvas size based on its container size
+            const container = document.getElementById('analogy-container');
+            // This ensures the canvas size matches the new responsive container height
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        window.addEventListener('resize', setupCanvas);
+        window.onload = () => {
+            setupCanvas();
+            animate();
+        };
+
+        // Note: The UI updates on every frame inside the animate function,
+        // so explicit event listeners for input range change are not strictly necessary 
+        // for updating the display, but they are crucial for setting the variables.
+        voltageRange.addEventListener('input', () => {
+            // currentVoltage will be updated in the next animation frame
+        });
+        resistanceRange.addEventListener('input', () => {
+            // currentResistance will be updated in the next animation frame
+        });
+
+    </script>
+
+</body>
+</html>
