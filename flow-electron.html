@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Electron Flow</title>
+    <title>Flow Of Electron</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -157,9 +157,10 @@
             ctx.fillRect(10, pipeY - pumpHeight / 2, pumpWidth, pumpHeight);
 
             // Pump Label
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '16px Inter';
-            ctx.fillText('PUMP (V)', 12, pipeY - pumpHeight / 2 + 20);
+            ctx.fillStyle = '#1f2937'; // Changed to Dark Gray/Black
+            ctx.font = 'bold 20px Inter'; 
+            // Moved text 10px above the top edge of the pump body
+            ctx.fillText('PUMP (V)', 10, pipeY - pumpHeight / 2 - 10); 
         }
 
         function drawResistor(pipeY) {
